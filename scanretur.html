@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Scanner Retur</title>
+
+<style>
+    /* Reset & Full Screen Layout (Tanpa Scroll) */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    html, body { width: 100%; height: 100vh; overflow: hidden; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; }
+
+    /* Header Ringkas */
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+        font-size: 14px;
+        height: 45px;
+    }
+    .app-header a { color: #94a3b8; text-decoration: none; font-weight: 600; }
+    .app-header h3 { font-size: 14px; color: #f8fafc; }
+
+    /* Tombol Refresh di Header */
+    .refresh-btn {
+        background: #334155;
+        color: #f8fafc;
+        border: 1px solid #475569;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .refresh-btn:active {
+        background: #475569;
+    }
+
+    /* Area Utama Kamera (Mendominasi Layar) */
+    .scanner-wrapper {
+        flex: 1;
+        position: relative;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+    #reader {
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+    }
+    #reader video {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    /* Lampu Indikator Melayang di Kamera */
+    .camera-overlay-top {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+        pointer-events: none;
+    }
+    .status-pill-floating {
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(4px);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    #bca-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ff3333; /* Warna standby awal */
+        box-shadow: 0 0 8px currentColor;
+        transition: background 0.3s;
+    }
+
+    /* Tombol Aksi Melayang (Input Manual) */
+    .floating-actions {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        z-index: 10;
+        display: flex;
+        gap: 8px;
+    }
+    .float-btn {
+        background: rgba(30, 41, 59, 0.85);
+        backdrop-filter: blur(4px);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    /* Bagian Bawah: Riwayat Model Accordion / Dropdown */
+    .bottom-drawer {
+        background: #1e293b;
+        border-top: 1px solid #334155;
+        transition: max-height 0.3s ease-in-out;
+        max-height: 45px; /* Default tertutup, hanya terlihat bar judulnya */
+        overflow: hidden;
+        z-index: 20;
+    }
+    .bottom-drawer.open {
+        max-height: 200px; /* Terbuka maksimal muat beberapa baris */
+    }
+    .drawer-toggle {
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        background: #1e293b;
+    }
+    .drawer-content {
+        padding: 0 10px 10px 10px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    .compact-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    .compact-table th, .compact-table td {
+        padding: 6px 8px;
+        text-align: left;
+        border-bottom: 1px solid #334155;
+        color: #f8fafc;
+    }
+
+    /* Badge Status */
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    .badge-kembali { background: #065f46; color: #34d399; }
+    .badge-sudah { background: #7f1d1d; color: #f87171; }
+    .badge-tidak { background: #78350f; color: #fbbf24; }
+
+    /* Modal Input Manual (Pop-up Tersembunyi) */
+    #manualModal {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(3px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+    }
+    .modal-box {
+        background: #1e293b;
+        padding: 20px;
+        border-radius: 12px;
+        width: 85%;
+        max-width: 320px;
+        border: 1px solid #334155;
+    }
+    .modal-box h3 { font-size: 15px; margin-bottom: 5px; }
+    .modal-box input {
+        width: 100%;
+        padding: 10px;
+        margin: 12px 0;
+        background: #0f172a;
+        border: 1px solid #475569;
+        color: white;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-secondary { background: #475569; color: white; }
+
+    /* Sembunyikan elemen tombol start lama karena kamera auto start */
+    #startBtn { display: none; }
+</style>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#003399">
+</head>
+
+<body>
+
+<div class="app-header">
+    <a href="index.html">← Menu</a>
+    <h3>🔄 SCANNER RETUR</h3>
+    <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
+</div>
+
+<div class="scanner-wrapper">
+    <div class="camera-overlay-top">
+        <div class="status-pill-floating">
+            <div id="bca-indicator"></div>
+            <span id="status-message">Menyalakan Kamera...</span>
+        </div>
+    </div>
+
+    <div id="reader"></div>
+
+    <div class="floating-actions">
+        <button class="float-btn" onclick="toggleManualModal(true)">⌨ Input Manual</button>
+    </div>
+</div>
+
+<div class="bottom-drawer" id="bottomDrawer">
+    <div class="drawer-toggle" onclick="toggleDrawer()">
+        <span>📋 Riwayat Retur</span>
+        <span id="drawerArrow">▼</span>
+    </div>
+    <div class="drawer-content">
+        <table class="compact-table">
+            <thead>
+                <tr>
+                    <th>Resi</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="manualModal">
+    <div class="modal-box">
+        <h3>Input Manual Resi Retur</h3>
+        <input type="text" id="manualResi" placeholder="Ketik nomor resi...">
+        <div class="modal-buttons">
+            <button class="btn btn-secondary" onclick="toggleManualModal(false)">Batal</button>
+            <button class="btn btn-primary" onclick="submitManual()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tombol start tersembunyi untuk kompatibilitas script asli -->
+<button id="startBtn" style="display:none;"></button>
+
+<script>
+
+const APP_URL="https://script.google.com/macros/s/AKfycbwR2CBY140yeQTQhpH3bb5n5cowIWfpbVZi0J-VItqmDSLAvRBaTa0TaJIbPBkdcKY/exec";
+
+let html5QrCode=null;
+
+let scanHistory=
+JSON.parse(
+localStorage.getItem("returHistory")||"[]"
+);
+
+window.onload=function(){
+renderHistory();
+startCamera();
+};
+
+function robotBicara(teks){
+
+if('speechSynthesis' in window){
+
+speechSynthesis.cancel();
+
+const tts=
+new SpeechSynthesisUtterance(teks);
+
+tts.lang='id-ID';
+
+speechSynthesis.speak(tts);
+
+}
+
+}
+
+function setLampu(warna,pesan){
+
+document.getElementById("bca-indicator")
+.style.backgroundColor=
+warna==="ijo"
+? "#00cc44"
+: warna==="kuning"
+? "#ffcc00"
+: "#ff3333";
+
+document.getElementById("status-message")
+.innerText=pesan;
+
+}
+
+function startCamera(){
+
+if(html5QrCode) return;
+
+html5QrCode=
+new Html5Qrcode("reader");
+
+html5QrCode.start(
+{facingMode:"environment"},
+{fps:10,qrbox:220},
+(decodedText)=>{
+
+html5QrCode.pause(true);
+
+prosesScan(
+decodedText.trim()
+);
+
+}
+)
+.then(()=>{
+
+setLampu(
+"ijo",
+"Siap Scan Returan!"
+);
+
+robotBicara(
+"Sistem Retur Siap"
+);
+
+});
+
+}
+
+// Fungsi Buka/Tutup Drawer Riwayat
+function toggleDrawer() {
+    const drawer = document.getElementById("bottomDrawer");
+    const arrow = document.getElementById("drawerArrow");
+    drawer.classList.toggle("open");
+    arrow.innerText = drawer.classList.contains("open") ? "▲" : "▼";
+}
+
+// Fungsi Pop-up Input Manual
+function toggleManualModal(show) {
+    const modal = document.getElementById("manualModal");
+    modal.style.display = show ? "flex" : "none";
+    if (show) {
+        setTimeout(() => document.getElementById("manualResi").focus(), 100);
+    }
+}
+
+function submitManual() {
+    const input = document.getElementById("manualResi");
+    const val = input.value.trim();
+    if (!val) return;
+    prosesScan(val.toUpperCase());
+    input.value = "";
+    toggleManualModal(false);
+}
+
+// Enter = Submit Input Manual
+document.getElementById("manualResi").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        submitManual();
+    }
+});
+
+async function prosesScan(resi){
+
+setLampu(
+"kuning",
+"Memproses..."
+);
+
+try{
+
+const r=
+await fetch(APP_URL,{
+method:"POST",
+body:JSON.stringify({
+resi:resi,
+source:"scanRetur"
+})
+});
+
+const json=
+await r.json();
+
+let badge="badge-tidak";
+let status="ERROR";
+
+if(json.status==="success"){
+
+badge="badge-kembali";
+status="KEMBALI";
+
+setLampu(
+"ijo",
+"Barang Sudah Kembali"
+);
+
+robotBicara(
+"Barang Sudah Kembali"
+);
+
+}
+else if(json.status==="duplicate"){
+
+badge="badge-sudah";
+status="SUDAH";
+
+setLampu(
+"merah",
+"Sudah Pernah Scan"
+);
+
+robotBicara(
+"Sudah Pernah Diproses"
+);
+
+}
+else {
+
+badge="badge-tidak";
+status="TIDAK DITEMUKAN";
+
+setLampu(
+"merah",
+"Resi Tidak Ditemukan"
+);
+
+robotBicara(
+"Resi tidak ditemukan"
+);
+
+}
+
+scanHistory.unshift({
+resi,
+status,
+badge
+});
+
+localStorage.setItem(
+"returHistory",
+JSON.stringify(
+scanHistory.slice(0,15)
+)
+);
+
+renderHistory();
+
+}
+catch(err){
+
+setLampu(
+"merah",
+"Error Koneksi"
+);
+
+}
+
+setTimeout(()=>{
+
+if(html5QrCode){
+html5QrCode.resume();
+}
+
+},1500);
+
+}
+
+function renderHistory(){
+
+document.getElementById(
+"historyBody"
+).innerHTML=
+
+scanHistory.map(item=>`
+
+<tr>
+<td>${item.resi}</td>
+<td>
+<span class="badge ${item.badge}">
+${item.status}
+</span>
+</td>
+</tr>
+
+`).join("");
+
+}
+
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js");
+}
+</script>
+</body>
+</html>
