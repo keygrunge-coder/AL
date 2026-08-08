@@ -2,15 +2,12 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Upload Retur SPX</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Retur Shopee</title>
 
 <style>
-
-    .header-box {
-    background: #003399; /* Warna biru */
+.header-box {
+    background: #EE4D2D; /* Warna Oranye Khas Shopee */
     color: #fff;
     padding: 15px;
     border-radius: 12px;
@@ -19,7 +16,7 @@
 }
 
 .btn-nav {
-    background: #cc0000; /* Warna merah */
+    background: #333; /* Warna tombol navigasi */
     color: white;
     border: none;
     padding: 8px 15px;
@@ -31,46 +28,81 @@
     margin: 5px; /* Memberi jarak antar tombol */
     font-size: 13px;
 }
+    
 body{
-    font-family:Arial,sans-serif;
-    background:#f4f4f4;
-    padding:20px;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    padding: 20px;
 }
 
 .container{
-    max-width:700px;
-    margin:auto;
-    background:#fff;
-    padding:20px;
-    border-radius:10px;
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
 }
 
-input,
-button,
-select{
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    box-sizing:border-box;
+/* Card pembungkus kotak baru */
+.card {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+    margin-top: 0;
+    font-size: 15px;
+    color: #333;
+}
+
+textarea{
+    width: 100%;
+    height: 350px;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Textarea khusus list hasil yang lebih kecil */
+.card textarea {
+    height: 150px;
 }
 
 button{
-    background:#0d6efd;
-    color:#fff;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:16px;
+    width: 100%;
+    padding: 15px;
+    margin-top: 10px;
+    background: #EE4D2D; /* Tombol utama warna Shopee */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
 }
 
-#hasil{
-    margin-top:20px;
-    white-space:pre-wrap;
-    font-family:monospace;
+button:hover {
+    background: #d73d1a;
 }
-.small{
-    font-size:13px;
-    color:#333;
+
+/* Style tabel hasil ringkasan */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+table td:last-child {
+    text-align: right;
+    font-weight: bold;
 }
 </style>
 
@@ -80,121 +112,102 @@ button{
 <div class="container">
 
 <div class="header-box">
-<h3> <B>UPLOAD RETUR SPX</B> </h3>
-<a href="retur.html" class="btn-nav"> SCAN RETUR</a>
-<a href="upload.html" class="btn-nav">UPLOAD RETUR JNT</a>
+<h3> <B>UPLOAD RETUR SHOPEE</B> </h3>
+<a href="retur.html" class="btn-nav">SCAN RETUR</a>
+<a href="upload_tiktok.html" class="btn-nav">UPLOAD RETUR TIKTOK</a>
 </div>
-<input
-type="file"
-id="file"
-accept=".xlsx,.xls">
 
-<!-- Opsional: masukkan URL proxy jika server target memblokir CORS. Contoh public proxy (tidak direkomendasikan untuk produksi): https://cors-anywhere.herokuapp.com/ -->
-<input type="text" id="proxy" placeholder="(Opsional) Proxy prefix, mis. https://cors-anywhere.herokuapp.com/" class="small">
+<div class="card">
+<h3>Tempel Data Retur Shopee</h3>
+<textarea id="rawData" placeholder="Paste data Shopee di sini..."></textarea>
+</div>
 
-<button onclick="uploadSPX()">
-Upload ke RETUR_SPX
+<button onclick="uploadRetur()">
+Upload ke Sheet
 </button>
 
-<div id="hasil">
-Belum ada file.
+<!-- Kotak Hasil Ringkasan -->
+<div class="card">
+<h3>Hasil Upload</h3>
+<table>
+<tr>
+<td>Berhasil</td>
+<td id="hasilBerhasil">0</td>
+</tr>
+<tr>
+<td>Duplikat</td>
+<td id="hasilDuplikat">0</td>
+</tr>
+</table>
+</div>
+
+<!-- Kotak Resi Berhasil -->
+<div class="card">
+<h3>Resi Berhasil</h3>
+<textarea id="listBerhasil" readonly placeholder="Daftar resi berhasil akan muncul di sini..."></textarea>
+</div>
+
+<!-- Kotak Resi Duplikat -->
+<div class="card">
+<h3>Resi Duplikat</h3>
+<textarea id="listDuplikat" readonly placeholder="Daftar resi duplikat akan muncul di sini..."></textarea>
 </div>
 
 </div>
 
 <script>
-// URL Google Apps Script Anda (biarkan sesuai deployment Anda)
-const APP_URL = "https://script.google.com/macros/s/AKfycbyuJTOZaFhOZ52fFKPCxFIulD5rTFJb6VehsELtOZgjmaJf0Epc4Jm71gcPVLtE9sJK/exec";
 
-async function uploadSPX(){
-    const hasil = document.getElementById("hasil");
-    const fileInput = document.getElementById("file");
-    const proxyInput = document.getElementById("proxy");
+// Ganti URL Web App Google Script jika backend Shopee dipisah, atau gunakan URL yang sama jika diatur via parameter sumber (source)
+const APP_URL = "https://script.google.com/macros/s/AKfycbwjK_J2V90ftGQXdHY2afPdcvEfdJPcSc83P8V9xC5okzgMAaCJDuv_ZAspeyJKIPVs/exec";
 
-    const file = fileInput.files[0];
+// Shortcut Ctrl + Enter untuk langsung upload
+document.getElementById("rawData").addEventListener("keydown", function(event) {
+    if (event.key === "Enter" && event.ctrlKey) {
+        event.preventDefault();
+        uploadRetur();
+    }
+});
 
-    if(!file){
-        alert("Pilih file Excel terlebih dahulu.");
+async function uploadRetur(){
+
+    const text = document.getElementById("rawData").value.trim();
+
+    if(!text){
+        alert("Paste data dulu");
         return;
     }
 
-    hasil.innerText = "Membaca file...";
+    document.getElementById("hasilBerhasil").innerText = "...";
+    document.getElementById("hasilDuplikat").innerText = "...";
+    document.getElementById("listBerhasil").value = "Sedang memproses...";
+    document.getElementById("listDuplikat").value = "Sedang memproses...";
 
-    const reader = new FileReader();
+    try{
 
-    reader.onload = async function(e){
-        try{
-            // gunakan array buffer (lebih kompatibel daripada readAsBinaryString)
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
+        const r = await fetch(APP_URL,{
+            method:"POST",
+            body:JSON.stringify({
+                source:"uploadReturShopee", // Bisa dibedakan kodenya di Apps Script jika tabel sheet-nya dipisah
+                text:text
+            })
+        });
 
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:"" });
+        const json = await r.json();
 
-            hasil.innerText = "Mengupload " + (rows.length-1) + " data...";
+        document.getElementById("hasilBerhasil").innerText = json.berhasil || 0;
+        document.getElementById("hasilDuplikat").innerText = json.duplikat || 0;
+        
+        document.getElementById("listBerhasil").value = (json.listBerhasil || []).join("\n");
+        document.getElementById("listDuplikat").value = (json.listDuplikat || []).join("\n");
 
-            // siapkan body JSON
-            const body = JSON.stringify({ source:"uploadReturSPX", rows: rows });
+    }catch(err){
 
-            // Periksa apakah user mengisi proxy prefix
-            let targetUrl = APP_URL;
-            const proxyPrefix = (proxyInput && proxyInput.value && proxyInput.value.trim()) ? proxyInput.value.trim() : "";
-            if(proxyPrefix){
-                // jika user memasukkan proxy, gabungkan prefix + target
-                // contoh: proxyPrefix = 'https://cors-anywhere.herokuapp.com/'
-                targetUrl = proxyPrefix + APP_URL;
-            }
+        document.getElementById("listBerhasil").value = err.toString();
+        document.getElementById("listDuplikat").value = err.toString();
 
-            let response;
-            try{
-                response = await fetch(targetUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: body
-                });
-            }catch(fetchErr){
-                // Error fetch biasanya karena jaringan atau CORS
-                hasil.innerText = "Gagal melakukan fetch: " + fetchErr.toString() + "\n\nJika ini disebabkan oleh CORS, cobalah mengisi Proxy (opsional) di atas dengan proxy yang mengizinkan CORS, atau host halaman ini dan Script di origin yang sama (mis. deploy HTML di Apps Script).";
-                console.error("Fetch error:", fetchErr);
-                return;
-            }
-
-            // Periksa status HTTP
-            if(!response.ok){
-                const text = await response.text().catch(()=>"");
-                hasil.innerText = "Server error: " + response.status + " " + response.statusText + "\n" + text + "\n\nJika ini terkait CORS, coba gunakan Proxy atau host halaman di origin yang sama dengan Apps Script.";
-                console.error("Fetch non-ok body:", text);
-                return;
-            }
-
-            // Parse JSON respons
-            let json;
-            try{
-                json = await response.json();
-            }catch(parseErr){
-                const txt = await response.text().catch(()=>"(tidak dapat membaca body)");
-                hasil.innerText = "Gagal menguraikan JSON dari server: " + parseErr.toString() + "\nResponse body:\n" + txt;
-                console.error(parseErr);
-                return;
-            }
-
-            if(json.status === "success"){
-                hasil.innerText = `Upload Berhasil\n\nTotal Data Baru : ${json.total}`;
-            } else {
-                hasil.innerText = "Respons server:\n" + JSON.stringify(json, null, 2);
-            }
-
-        }catch(err){
-            hasil.innerText = "Error: " + err.toString();
-            console.error(err);
-        }
-    };
-
-    // baca file sebagai array buffer
-    reader.readAsArrayBuffer(file);
+    }
 }
+
 </script>
 
 </body>
