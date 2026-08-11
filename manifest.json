@@ -1,7 +1,7 @@
 {
-  "name": "Intan Sandals Scanner",
-  "short_name": "Intan Scanner",
-  "description": "Sistem Scan Paket Keluar Intan Sandals",
+  "name": "Pusat Komando Packing V5",
+  "short_name": "Komando V5",
+  "description": "Scanner Paket Keluar SekarFootwear",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#003399",
