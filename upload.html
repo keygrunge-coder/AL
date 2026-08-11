@@ -112,8 +112,7 @@ table td:last-child {
 <div class="container">
 
 <div class="header-box">
-<h3> <B>UPLOAD RETUR TIKTOK TOKOPEDIA</B> </h3>
-<a href="scanretur.html" class="btn-nav"> SCAN RETUR</a>
+<h3> <B>UPLOAD RETUR JNT TIKTOK TOKOPEDIA</B> </h3>
 <a href="uploadspx.html" class="btn-nav">UPLOAD RETUR SPX</a>
 </div>
 
@@ -155,10 +154,10 @@ Upload ke Sheet
 
 </div>
 
+<!-- Memanggil file config.js sebelum script utama -->
+<script src="config.js"></script>
+
 <script>
-
-const APP_URL = "https://script.google.com/macros/s/AKfycbwR2CBY140yeQTQhpH3bb5n5cowIWfpbVZi0J-VItqmDSLAvRBaTa0TaJIbPBkdcKY/exec";
-
 // Tambahan agar bisa tekan Ctrl + Enter untuk langsung upload
 document.getElementById("rawData").addEventListener("keydown", function(event) {
     if (event.key === "Enter" && event.ctrlKey) {
@@ -176,7 +175,6 @@ async function uploadRetur(){
         return;
     }
 
-    // Menggunakan logika asli (memakai elemen teks proses sementara di card hasil/berhasil atau alert)
     document.getElementById("hasilBerhasil").innerText = "...";
     document.getElementById("hasilDuplikat").innerText = "...";
     document.getElementById("listBerhasil").value = "Sedang memproses...";
@@ -184,7 +182,7 @@ async function uploadRetur(){
 
     try{
 
-        const r = await fetch(APP_URL,{
+        const r = await fetch(CONFIG.APP_URL,{
             method:"POST",
             body:JSON.stringify({
                 source:"uploadRetur",
@@ -194,7 +192,6 @@ async function uploadRetur(){
 
         const json = await r.json();
 
-        // Memasukkan hasil JSON sesuai kotak tampilan baru
         document.getElementById("hasilBerhasil").innerText = json.berhasil || 0;
         document.getElementById("hasilDuplikat").innerText = json.duplikat || 0;
         
@@ -208,7 +205,6 @@ async function uploadRetur(){
 
     }
 }
-
 </script>
 
 </body>
