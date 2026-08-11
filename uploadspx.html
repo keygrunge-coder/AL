@@ -113,8 +113,8 @@ table td:last-child {
 
 <div class="header-box">
 <h3> <B>UPLOAD RETUR SHOPEE</B> </h3>
-<a href="retur.html" class="btn-nav">SCAN RETUR</a>
-<a href="upload_tiktok.html" class="btn-nav">UPLOAD RETUR TIKTOK</a>
+
+<a href="uploadjnt.html" class="btn-nav">UPLOAD RETUR TIKTOK</a>
 </div>
 
 <div class="card">
@@ -155,11 +155,10 @@ Upload ke Sheet
 
 </div>
 
+<!-- Memanggil file config.js sebelum script utama -->
+<script src="config.js"></script>
+
 <script>
-
-// Ganti URL Web App Google Script jika backend Shopee dipisah, atau gunakan URL yang sama jika diatur via parameter sumber (source)
-const APP_URL = "https://script.google.com/macros/s/AKfycbwjK_J2V90ftGQXdHY2afPdcvEfdJPcSc83P8V9xC5okzgMAaCJDuv_ZAspeyJKIPVs/exec";
-
 // Shortcut Ctrl + Enter untuk langsung upload
 document.getElementById("rawData").addEventListener("keydown", function(event) {
     if (event.key === "Enter" && event.ctrlKey) {
@@ -184,10 +183,10 @@ async function uploadRetur(){
 
     try{
 
-        const r = await fetch(APP_URL,{
+        const r = await fetch(CONFIG.APP_URL,{
             method:"POST",
             body:JSON.stringify({
-                source:"uploadReturShopee", // Bisa dibedakan kodenya di Apps Script jika tabel sheet-nya dipisah
+                source:"uploadReturShopee",
                 text:text
             })
         });
@@ -207,7 +206,6 @@ async function uploadRetur(){
 
     }
 }
-
 </script>
 
 </body>
