@@ -197,7 +197,6 @@
     .btn-primary { background: #2563eb; color: white; }
     .btn-secondary { background: #475569; color: white; }
 
-    /* Sembunyikan elemen tombol start lama karena kamera auto start */
     #startBtn { display: none; }
 </style>
 
@@ -258,93 +257,56 @@
     </div>
 </div>
 
-<!-- Tombol start tersembunyi untuk kompatibilitas script asli -->
 <button id="startBtn" style="display:none;"></button>
 
+<!-- Memanggil file config.js sebelum script utama -->
+<script src="config.js"></script>
+
 <script>
+let html5QrCode = null;
 
-const APP_URL="https://script.google.com/macros/s/AKfycbwR2CBY140yeQTQhpH3bb5n5cowIWfpbVZi0J-VItqmDSLAvRBaTa0TaJIbPBkdcKY/exec";
+let scanHistory = JSON.parse(localStorage.getItem("returHistory") || "[]");
 
-let html5QrCode=null;
-
-let scanHistory=
-JSON.parse(
-localStorage.getItem("returHistory")||"[]"
-);
-
-window.onload=function(){
-renderHistory();
-startCamera();
+window.onload = function() {
+    renderHistory();
+    startCamera();
 };
 
-function robotBicara(teks){
-
-if('speechSynthesis' in window){
-
-speechSynthesis.cancel();
-
-const tts=
-new SpeechSynthesisUtterance(teks);
-
-tts.lang='id-ID';
-
-speechSynthesis.speak(tts);
-
+function robotBicara(teks) {
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        const tts = new SpeechSynthesisUtterance(teks);
+        tts.lang = 'id-ID';
+        speechSynthesis.speak(tts);
+    }
 }
 
+function setLampu(warna, pesan) {
+    document.getElementById("bca-indicator").style.backgroundColor =
+        warna === "ijo" ? "#00cc44" :
+        warna === "kuning" ? "#ffcc00" : "#ff3333";
+
+    document.getElementById("status-message").innerText = pesan;
 }
 
-function setLampu(warna,pesan){
+function startCamera() {
+    if (html5QrCode) return;
 
-document.getElementById("bca-indicator")
-.style.backgroundColor=
-warna==="ijo"
-? "#00cc44"
-: warna==="kuning"
-? "#ffcc00"
-: "#ff3333";
+    html5QrCode = new Html5Qrcode("reader");
 
-document.getElementById("status-message")
-.innerText=pesan;
-
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 220 },
+        (decodedText) => {
+            html5QrCode.pause(true);
+            prosesScan(decodedText.trim());
+        }
+    ).then(() => {
+        setLampu("ijo", "Siap Scan Returan!");
+        robotBicara("Sistem Retur Siap");
+    });
 }
 
-function startCamera(){
-
-if(html5QrCode) return;
-
-html5QrCode=
-new Html5Qrcode("reader");
-
-html5QrCode.start(
-{facingMode:"environment"},
-{fps:10,qrbox:220},
-(decodedText)=>{
-
-html5QrCode.pause(true);
-
-prosesScan(
-decodedText.trim()
-);
-
-}
-)
-.then(()=>{
-
-setLampu(
-"ijo",
-"Siap Scan Returan!"
-);
-
-robotBicara(
-"Sistem Retur Siap"
-);
-
-});
-
-}
-
-// Fungsi Buka/Tutup Drawer Riwayat
 function toggleDrawer() {
     const drawer = document.getElementById("bottomDrawer");
     const arrow = document.getElementById("drawerArrow");
@@ -352,7 +314,6 @@ function toggleDrawer() {
     arrow.innerText = drawer.classList.contains("open") ? "▲" : "▼";
 }
 
-// Fungsi Pop-up Input Manual
 function toggleManualModal(show) {
     const modal = document.getElementById("manualModal");
     modal.style.display = show ? "flex" : "none";
@@ -370,7 +331,6 @@ function submitManual() {
     toggleManualModal(false);
 }
 
-// Enter = Submit Input Manual
 document.getElementById("manualResi").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -378,133 +338,69 @@ document.getElementById("manualResi").addEventListener("keypress", (e) => {
     }
 });
 
-async function prosesScan(resi){
+async function prosesScan(resi) {
+    setLampu("kuning", "Memproses...");
 
-setLampu(
-"kuning",
-"Memproses..."
-);
+    try {
+        const r = await fetch(CONFIG.APP_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                resi: resi,
+                source: "scanRetur"
+            })
+        });
 
-try{
+        const json = await r.json();
 
-const r=
-await fetch(APP_URL,{
-method:"POST",
-body:JSON.stringify({
-resi:resi,
-source:"scanRetur"
-})
-});
+        let badge = "badge-tidak";
+        let status = "ERROR";
 
-const json=
-await r.json();
+        if (json.status === "success") {
+            badge = "badge-kembali";
+            status = "KEMBALI";
+            setLampu("ijo", "Barang Sudah Kembali");
+            robotBicara("Barang Sudah Kembali");
+        } else if (json.status === "duplicate") {
+            badge = "badge-sudah";
+            status = "SUDAH";
+            setLampu("merah", "Sudah Pernah Scan");
+            robotBicara("Sudah Pernah Diproses");
+        } else {
+            badge = "badge-tidak";
+            status = "TIDAK DITEMUKAN";
+            setLampu("merah", "Resi Tidak Ditemukan");
+            robotBicara("Resi tidak ditemukan");
+        }
 
-let badge="badge-tidak";
-let status="ERROR";
+        scanHistory.unshift({ resi, status, badge });
+        localStorage.setItem("returHistory", JSON.stringify(scanHistory.slice(0, 15)));
+        renderHistory();
 
-if(json.status==="success"){
+    } catch(err) {
+        setLampu("merah", "Error Koneksi");
+    }
 
-badge="badge-kembali";
-status="KEMBALI";
-
-setLampu(
-"ijo",
-"Barang Sudah Kembali"
-);
-
-robotBicara(
-"Barang Sudah Kembali"
-);
-
-}
-else if(json.status==="duplicate"){
-
-badge="badge-sudah";
-status="SUDAH";
-
-setLampu(
-"merah",
-"Sudah Pernah Scan"
-);
-
-robotBicara(
-"Sudah Pernah Diproses"
-);
-
-}
-else {
-
-badge="badge-tidak";
-status="TIDAK DITEMUKAN";
-
-setLampu(
-"merah",
-"Resi Tidak Ditemukan"
-);
-
-robotBicara(
-"Resi tidak ditemukan"
-);
-
+    setTimeout(() => {
+        if (html5QrCode) {
+            html5QrCode.resume();
+        }
+    }, 1500);
 }
 
-scanHistory.unshift({
-resi,
-status,
-badge
-});
-
-localStorage.setItem(
-"returHistory",
-JSON.stringify(
-scanHistory.slice(0,15)
-)
-);
-
-renderHistory();
-
+function renderHistory() {
+    document.getElementById("historyBody").innerHTML = scanHistory.map(item => `
+        <tr>
+            <td>${item.resi}</td>
+            <td>
+                <span class="badge ${item.badge}">
+                    ${item.status}
+                </span>
+            </td>
+        </tr>
+    `).join("");
 }
-catch(err){
-
-setLampu(
-"merah",
-"Error Koneksi"
-);
-
-}
-
-setTimeout(()=>{
-
-if(html5QrCode){
-html5QrCode.resume();
-}
-
-},1500);
-
-}
-
-function renderHistory(){
-
-document.getElementById(
-"historyBody"
-).innerHTML=
-
-scanHistory.map(item=>`
-
-<tr>
-<td>${item.resi}</td>
-<td>
-<span class="badge ${item.badge}">
-${item.status}
-</span>
-</td>
-</tr>
-
-`).join("");
-
-}
-
 </script>
+
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js");
