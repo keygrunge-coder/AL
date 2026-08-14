@@ -360,7 +360,7 @@ async function prosesScan(resi) {
             status = "KEMBALI";
             setLampu("ijo", "Barang Sudah Kembali");
             robotBicara("Barang Sudah Kembali");
-        } else if (json.status === "duplicate") {
+        } else if (json.status === "already_scanned") {
             badge = "badge-sudah";
             status = "SUDAH";
             setLampu("merah", "Sudah Pernah Scan");
